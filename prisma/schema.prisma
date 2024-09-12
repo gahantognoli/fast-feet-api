@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole @default(DELIVERYMAN)
+  cpf      String   @unique
+
+  orders Order[]
+
+  @@map("user")
+}
+
+model Order {
+  id            String    @id @default(uuid())
+  deliverymanId String?   @map("deliveryman_id")
+  clientId      String    @map("client_id")
+  trackingCode  String    @unique @map("tracking_code")
+  title         String
+  status        Status    @default(WAITING)
+  isReturned    Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime? @default(now()) @map("updated_at")
+  picknUpAt     DateTime? @map("pickn_up_at")
+  deliveryAt    DateTime? @map("delivery_at")
+
+  attachment  Attachment?
+  shipping    Shipping    @relation(fields: [clientId], references: [id])
+  deliveryman User?       @relation(fields: [deliverymanId], references: [id])
+
+  @@map("orders")
+}
+
+model Shipping {
+  id                 String @id @default(uuid())
+  clientName         String @map("client_name")
+  clientEmail        String @unique @map("client_email")
+  clientState        String @map("client_state")
+  clientCity         String @map("client_city")
+  clientNeighborhood String @map("client_neighborhood")
+  clientAddress      String @map("client_address")
+  clientZipcode      Int    @map("client_zipcode")
+
+  orders        Order[]
+  notifications Notification[]
+
+  @@map("shippings")
+}
+
+model Attachment {
+  id      String @id @default(uuid())
+  title   String
+  url     String
+  orderId String @unique @map("order_id")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("attachments")
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  shippingId String   @map("shipping_id")
+  title      String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  Shipping Shipping @relation(fields: [shippingId], references: [id])
+
+  @@map("notifications")
+}
+
+enum UserRole {
+  ADMIN
+  DELIVERYMAN
+}
+
+enum Status {
+  WAITING
+  PICKN_UP
+  DONE
+}
